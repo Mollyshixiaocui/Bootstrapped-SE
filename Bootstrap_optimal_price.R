@@ -1,7 +1,6 @@
 library(ggplot2)
 
-setwd("~/Spring Quater/Advanced mkt analytics/hw1")
-data = read.csv("Homework 1 Data.csv")
+data = read.csv("Data.csv")
 
 data$pricePerUnit = data$dollars/data$units
 data$LogUnits = log(data$units)
@@ -12,7 +11,7 @@ data$LogPrice = log(data$pricePerUnit)
 
 
 
-#-----Q1-----
+#-----modeling demand-----
 dumWeek = model.matrix(~factor(data$weekOfYear))[,-1]
 models = list()
 #baseline model: price, week of year adn weekNum as predictors
@@ -29,13 +28,13 @@ models[[6]] = lm(formula = data$LogUnits ~ data$pricePerUnit+I(data$pricePerUnit
 #include interactionbetween logPrice and weekNum as predictor
 models[[7]] = lm(formula = data$LogUnits ~ data$LogPrice*data$weekNum+dumWeek)
 #
-Q1 = as.data.frame(sapply(models, summary))
+results = as.data.frame(sapply(models, summary))
 
 model = lm(formula = LogUnits ~ pricePerUnit, data = data)
 summary(model)
 
 
-#-----Q2-----
+#-----find the optimal price-----
 OptPrice = function(model){
   pricePerUnit = data.frame(pricePerUnit = seq(0,2,0.01))
   estimatedDemand = exp(predict(model, pricePerUnit))
@@ -46,7 +45,7 @@ OptPrice = function(model){
 
 OptPrice(model)
 
-#-----Q3-----
+#----------
 #calculate the bootstraped standard error of optimal price of 1000 and 2000 bootstrap samples.
 #define a funtion to calculate.
 #first parameter: number of bootstrap samples
@@ -77,7 +76,7 @@ bsOptPrice.df2 = data.frame(bsOptPrice = bootstrappedSE(2000, nrow(data))[[2]])
 ggplot(bsOptPrice.df2,aes(bsOptPrice))+geom_histogram(binwidth = 0.01)+
   labs(title = "bootstrap distribution of the optimal price--2000 bootstrap samples ")
 
-#-----Q4-----
+#-----find samllest sample size to reduce SE to 0.01-----
 sampleSize = seq(3000,5000,100)
 #desiredSampleSize = 0
 for (i in 1:length(sampleSize)){
@@ -86,7 +85,7 @@ for (i in 1:length(sampleSize)){
 }
 
 
-#-----Q5-----
+#----profit loss due to insufficient data------
 #the profit of 'true' demand model and 'true' optimal price
 trueProfit = (0.83-0.6)*exp(predict(model, data.frame(pricePerUnit = 0.83)))
 
@@ -101,9 +100,9 @@ profitLoss = function(nBootstraps,sampleSize){
   return(bt.profit - trueProfit)
 }
 
-#normal bootstrap sampler
+
 profitLoss(1000, nrow(data))
 profitLoss(1000, 1000)
 profitLoss(1000, 4300)
-#bootstrap with sample size of 2000
+
 
